@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        body {
+            margin: 0;
+        }
+        img {
+            display: block;
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+    <script type="module">
+        async function load() {
+            const script = document.createElement('script');
+            script.src = '/build/dom-to-svg.js';
+            script.onload = function() {
+                console.log(DomToSVG.documentToSVG(document));
+            }
+            document.body.appendChild(script);
+        }
+        load();
+
+    </script>
+</body>
+</html>
