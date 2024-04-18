@@ -23,7 +23,34 @@ const crawler = new PuppeteerCrawler({
         const keyPrefix = 'website';
 
         await page.setJavaScriptEnabled(true);
-        await savePage(page, keyPrefix, KeyValueStore)
+
+        await page.evaluate(() => {
+            if (document.readyState === "complete") {
+                return;
+            }
+            return new Promise((resolve) => {
+                window.onload = resolve;
+            });
+        });
+
+        await page.evaluate(async () => {
+            document.body.scrollIntoView(false);
+
+            await Promise.all(Array.from(document.getElementsByTagName('img'), image => {
+                if (image.complete) {
+                    return;
+                }
+
+                return new Promise((resolve, reject) => {
+                    image.addEventListener('load', resolve);
+                    image.addEventListener('error', resolve);
+                });
+            }));
+        });
+
+        console.log('Saving page...');
+
+        await savePage(page, keyPrefix, KeyValueStore);
 
         for (const [viewportName, viewportSize] of Object.entries(VIEWPORT_SIZES)) {
             const localPage = await openLocalPage(page.browser(), viewportSize, keyPrefix);
@@ -50,6 +77,7 @@ startWebServer();
 
 // Add first URL to the queue and start the crawl.
 await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
+// await crawler.run(['http://0.0.0.0:9999/test3.html']);
 // await crawler.run(['https://www.nytimes.com/']);
 
 await stopWebServer();
