@@ -1,4 +1,4 @@
-import {extractCssContent, extractMarkup, setupPageForCrawling} from "./browser.js";
+import {extractCssContent, extractMarkup, setupPageForCrawling, waitUntilComplete} from "./browser.js";
 import {cleanSvg} from "./svg.js";
 import fs from 'fs';
 import {dirname, join, resolve} from "path";
@@ -23,11 +23,14 @@ async function screenshotSvg(browser, key, viewportName, pageSize, store){
 
     await Promise.all([navigationPromise, networkIdlePromise]);
 
+    await waitUntilComplete(page);
+
     const screenshotBuffer = await page.screenshot();
     await store.setValue(pngKey, screenshotBuffer, { contentType: 'image/png' });
 }
 
 async function saveScreen(page, key, viewportName, store) {
+    await waitUntilComplete(page);
     const screenshotBuffer = await page.screenshot();
     await store.setValue(key + '-' + viewportName + '-screenshot', screenshotBuffer, { contentType: 'image/png' });
 }
@@ -51,7 +54,7 @@ async function saveSvg(page, pageSize, key, viewportName, store) {
 async function savePage(page, key, store) {
     const cssContents = await extractCssContent(page);
     const markup = await extractMarkup(page);
-    const cssContentsText = cssContents.join("\n/* ------------------ */\n")
+    const cssContentsText = cssContents.join("\n\n")
 
     await store.setValue(key + '-page', cssContentsText, { contentType: 'text/css' });
     await store.setValue(key + '-page', markup, { contentType: 'text/html' });

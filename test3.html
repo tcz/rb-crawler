@@ -5,8 +5,10 @@
     <title>Title</title>
 </head>
 <body>
-    <img decoding="async" src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/BuckNicks.PNG/167px-BuckNicks.PNG" />
-
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+<picture>
+    <source srcset="https://www.underluckystars.com/assets/img/simpler/ratings-mobile-trustpilot-white.svg" media="(prefers-color-scheme: light) or (prefers-color-scheme: no-preference)">
+    <source srcset="https://www.underluckystars.com/assets/img/simpler/ratings-mobile-trustpilot.svg" media="(prefers-color-scheme: dark)">
+    <img id="ratings-trustpilot" src="https://www.underluckystars.com/assets/img/simpler/ratings-mobile-trustpilot-white.svg" alt="{% trans %}Our Ratings{% endtrans %}" />
+</picture>
 </body>
 </html>

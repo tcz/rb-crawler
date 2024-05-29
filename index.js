@@ -53,14 +53,19 @@ const crawler = new PuppeteerCrawler({
         await savePage(page, keyPrefix, KeyValueStore);
 
         for (const [viewportName, viewportSize] of Object.entries(VIEWPORT_SIZES)) {
+            console.log('Saving viewport ' + viewportName + '...');
+
             const localPage = await openLocalPage(page.browser(), viewportSize, keyPrefix);
             await localPage.setJavaScriptEnabled(true);
 
             const pageSize = await getPageSize(localPage);
             await localPage.setViewport({ width: pageSize.width, height: pageSize.height });
 
+            console.log('Saving screen');
             await saveScreen(localPage, keyPrefix, viewportName, KeyValueStore);
+            console.log('Saving SVG');
             await saveSvg(localPage, pageSize, keyPrefix, viewportName, KeyValueStore);
+            console.log('Screenshotting SVG');
             await screenshotSvg(localPage.browser(), keyPrefix, viewportName, pageSize, KeyValueStore);
         }
 
@@ -76,9 +81,12 @@ const crawler = new PuppeteerCrawler({
 startWebServer();
 
 // Add first URL to the queue and start the crawl.
-await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
+// await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
 // await crawler.run(['http://0.0.0.0:9999/test3.html']);
 // await crawler.run(['https://www.nytimes.com/']);
+await crawler.run(['https://www.underluckystars.com/en/']);
+// await crawler.run(['https://www.empireonline.com/movies/features/star-wars-behind-scenes/']);
+
 
 await stopWebServer();
 process.exit(1);

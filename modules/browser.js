@@ -113,8 +113,25 @@ async function extractCssContent(page) {
     }, offlinedUrls);
 }
 
+async function waitUntilComplete(page) {
+    return new Promise((resolve) => {
+        async function checkReadyState() {
+            var readyState = await page.evaluate(function () {
+                return document.readyState;
+            });
+
+            if ("complete" === readyState) {
+                setTimeout(resolve, 2000);
+            } else {
+                await checkReadyState();
+            }
+        }
+        checkReadyState();
+    });
+}
+
 async function extractMarkup(page) {
-    return await page.evaluate(async (offlinedUrls) => {
+    await page.evaluate(async (offlinedUrls) => {
 
         const elementsToRemove = Array.from(document.querySelectorAll('script, iframe, fencedframe, video, frame, frameset, object, embed, canvas, dialog, noscript'));
         for (const elementToRemove of elementsToRemove) {
@@ -142,9 +159,11 @@ async function extractMarkup(page) {
         for (const baseElement of baseElements) {
             baseElement.remove();
         }
-
-        return document.documentElement.outerHTML;
     }, offlinedUrls);
+
+    return await page.evaluate(async () => {
+        return document.documentElement.outerHTML;
+    });
 }
 
 async function openLocalPage(browser, viewportSize, key) {
@@ -163,4 +182,4 @@ async function openLocalPage(browser, viewportSize, key) {
     return page;
 }
 
-export { getPageSize, extractMarkup, extractCssContent, setupPageForCrawling, openLocalPage };
+export { getPageSize, extractMarkup, extractCssContent, setupPageForCrawling, openLocalPage, waitUntilComplete };
