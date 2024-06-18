@@ -70,8 +70,16 @@ async function getPageSize(page) {
     });
 }
 
+function removeHtmlComments(html) {
+    return html.replace(/<!--[\s\S]*?-->/g, '');
+}
+
+function removeCssComments(css) {
+    return css.replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
 async function extractCssContent(page) {
-    return await page.evaluate(async (offlinedUrls) => {
+    let cssContents = await page.evaluate(async (offlinedUrls) => {
         let baseTag = document.querySelector('base');
         let documentBaseUrl = baseTag ? baseTag.href : document.location.href;
 
@@ -111,6 +119,8 @@ async function extractCssContent(page) {
 
         return cssContents;
     }, offlinedUrls);
+
+    return cssContents.map(removeCssComments);
 }
 
 async function waitUntilComplete(page) {
@@ -161,9 +171,11 @@ async function extractMarkup(page) {
         }
     }, offlinedUrls);
 
-    return await page.evaluate(async () => {
+    let html = await page.evaluate(async () => {
         return document.documentElement.outerHTML;
     });
+
+    return removeHtmlComments(html);
 }
 
 async function openLocalPage(browser, viewportSize, key) {
