@@ -2,6 +2,8 @@ import { PuppeteerCrawler, Dataset, KeyValueStore } from 'crawlee';
 import { startWebServer, stopWebServer } from './modules/server.js';
 import { savePage, saveScreen, saveSvg, screenshotSvg } from './modules/data.js';
 import { getPageSize, setupPageForCrawling, openLocalPage } from './modules/browser.js';
+import { checkSimilarity } from "./modules/similarity.js";
+import { join } from "path";
 
 let VIEWPORT_SIZES = {
     DESKTOP: { width: 1440, height: 900 },
@@ -51,6 +53,7 @@ const crawler = new PuppeteerCrawler({
         console.log('Saving page...');
 
         await savePage(page, keyPrefix, KeyValueStore);
+        let similarities = {};
 
         for (const [viewportName, viewportSize] of Object.entries(VIEWPORT_SIZES)) {
             console.log('Saving viewport ' + viewportName + '...');
@@ -62,16 +65,25 @@ const crawler = new PuppeteerCrawler({
             await localPage.setViewport({ width: pageSize.width, height: pageSize.height });
 
             console.log('Saving screen');
-            await saveScreen(localPage, keyPrefix, viewportName, KeyValueStore);
+            let screenshotName = await saveScreen(localPage, keyPrefix, viewportName, KeyValueStore);
+
             console.log('Saving SVG');
             await saveSvg(localPage, pageSize, keyPrefix, viewportName, KeyValueStore);
+
             console.log('Screenshotting SVG');
-            await screenshotSvg(localPage.browser(), keyPrefix, viewportName, pageSize, KeyValueStore);
+            let svgBitmapName = await screenshotSvg(localPage.browser(), keyPrefix, viewportName, pageSize, KeyValueStore);
+
+            console.log('Calculating similarity');
+            similarities[viewportName] = await checkSimilarity(
+                join('storage/key_value_stores/default', screenshotName),
+                join('storage/key_value_stores/default', svgBitmapName)
+            );
         }
 
         await Dataset.pushData({
             url: request.url,
             keyPrefix: keyPrefix,
+            similarities: similarities,
         });
     },
 
@@ -81,10 +93,10 @@ const crawler = new PuppeteerCrawler({
 startWebServer();
 
 // Add first URL to the queue and start the crawl.
-// await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
+await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
 // await crawler.run(['http://0.0.0.0:9999/test3.html']);
 // await crawler.run(['https://www.nytimes.com/']);
-await crawler.run(['https://www.underluckystars.com/en/']);
+// await crawler.run(['https://www.underluckystars.com/en/']);
 // await crawler.run(['https://www.empireonline.com/movies/features/star-wars-behind-scenes/']);
 
 

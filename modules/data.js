@@ -27,12 +27,17 @@ async function screenshotSvg(browser, key, viewportName, pageSize, store){
 
     const screenshotBuffer = await page.screenshot();
     await store.setValue(pngKey, screenshotBuffer, { contentType: 'image/png' });
+
+    return pngKey + '.png';
 }
 
 async function saveScreen(page, key, viewportName, store) {
     await waitUntilComplete(page);
     const screenshotBuffer = await page.screenshot();
-    await store.setValue(key + '-' + viewportName + '-screenshot', screenshotBuffer, { contentType: 'image/png' });
+    let pngKey = key + '-' + viewportName + '-screenshot';
+    await store.setValue(pngKey, screenshotBuffer, { contentType: 'image/png' });
+
+    return pngKey + '.png';
 }
 
 async function saveSvg(page, pageSize, key, viewportName, store) {
@@ -63,7 +68,5 @@ async function savePage(page, key, store) {
 
     await store.setValue(key + '-page-composite', compositeMarkup, { contentType: 'text/html' });
 }
-
-
 
 export { screenshotSvg, saveScreen, saveSvg, savePage };
