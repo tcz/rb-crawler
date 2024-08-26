@@ -1,11 +1,45 @@
-import {extractCssContent, extractMarkup, setupPageForCrawling, waitUntilComplete} from "./browser.js";
+import {extractCssContent, extractMarkup, openLocalPage, setupPageForCrawling, waitUntilComplete} from "./browser.js";
 import {cleanSvg} from "./svg.js";
 import fs from 'fs';
 import {dirname, join, resolve} from "path";
 import {fileURLToPath} from "url";
 
+import DeleteRandomNodesDataAugmenter from "./data_augmenters/DeleteRandomNodesDataAugmenter.js";
+import PermuteNodesDataAugmenter from "./data_augmenters/PermuteNodesDataAugmenter.js";
+import DeleteRandomCssRulesDataAugmenter from "./data_augmenters/DeleteRandomCssRulesDataAugmenter.js";
+import ChangeCssRulesDataAugmenter from "./data_augmenters/ChangeCssRulesDataAugmenter.js";
+import NoOpDataAugmenter from "./data_augmenters/NoOpDataAugmenter.js";
+import PermuteCssRulesDataAugmenter from "./data_augmenters/PermuteCssRulesDataAugmenter.js";
+
 const domToSvgPath = resolve(join(dirname(fileURLToPath(import.meta.url)), '../build/dom-to-svg.js'));
 const domToSvgJs = fs.readFileSync(domToSvgPath, 'utf8');
+
+const augmenters = [
+    {
+        augmenter: new DeleteRandomNodesDataAugmenter(0.1),
+        weight: 1
+    },
+    {
+        augmenter: new DeleteRandomCssRulesDataAugmenter(0.25),
+        weight: 1
+    },
+    {
+        augmenter: new DeleteRandomCssRulesDataAugmenter(0.25),
+        weight: 2
+    },
+    {
+        augmenter: new PermuteNodesDataAugmenter(),
+        weight: 1
+    },
+    {
+        augmenter: new ChangeCssRulesDataAugmenter(),
+        weight: 3
+    },
+    {
+        augmenter: new PermuteCssRulesDataAugmenter(),
+        weight: 1
+    },
+];
 
 async function screenshotSvg(browser, key, viewportName, pageSize, store){
     const page = await browser.newPage();
@@ -69,4 +103,40 @@ async function savePage(page, key, store) {
     await store.setValue(key + '-page-composite', compositeMarkup, { contentType: 'text/html' });
 }
 
-export { screenshotSvg, saveScreen, saveSvg, savePage };
+function selectRandomAugmenter() {
+    let totalWeight = augmenters.reduce((acc, augmenter) => acc + augmenter.weight, 0);
+    let random = Math.random() * totalWeight;
+
+    let currentWeight = 0;
+    for (let i = 0; i < augmenters.length; i++) {
+        currentWeight += augmenters[i].weight;
+        if (random < currentWeight) {
+            return augmenters[i].augmenter;
+        }
+    }
+    return augmenters[augmenters.length - 1].augmenter;
+}
+
+async function augmentPage(browser, basePrefix, store) {
+    let prefixes = [];
+    // Only using a single augmenter per page, effectively doubling the data size.
+    // This is to avoid too high training costs for the moment.
+
+    let selectedAugmenters = [selectRandomAugmenter()];
+
+    for (let i = 0; i < selectedAugmenters.length; i++) {
+        let newPrefix = basePrefix + '-augmented-' + i;
+
+        const localPage = await openLocalPage(browser, basePrefix);
+
+        const augmenter = selectedAugmenters[i];
+        await augmenter.augment(localPage);
+
+        await savePage(localPage, newPrefix, store);
+
+        prefixes.push([newPrefix, augmenter.constructor.name]);
+    }
+    return prefixes;
+}
+
+export { screenshotSvg, saveScreen, saveSvg, savePage, augmentPage };

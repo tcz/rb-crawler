@@ -178,11 +178,14 @@ async function extractMarkup(page) {
     return removeHtmlComments(html);
 }
 
-async function openLocalPage(browser, viewportSize, key) {
+async function openLocalPage(browser, key, viewportSize) {
     const page = await browser.newPage();
 
     await setupPageForCrawling(page);
-    await page.setViewport({ width: viewportSize.width, height: viewportSize.height });
+
+    if (viewportSize) {
+        await page.setViewport({ width: viewportSize.width, height: viewportSize.height });
+    }
 
     const navigationPromise = page.goto('http://localhost:3000/' + key + '-page-composite.html');
     const networkIdlePromise = page.waitForNavigation({
@@ -194,4 +197,29 @@ async function openLocalPage(browser, viewportSize, key) {
     return page;
 }
 
-export { getPageSize, extractMarkup, extractCssContent, setupPageForCrawling, openLocalPage, waitUntilComplete };
+function loadLazyImages(page) {
+    return page.evaluate(async () => {
+        document.body.scrollIntoView(false);
+
+        await Promise.all(Array.from(document.getElementsByTagName('img'), image => {
+            if (image.complete) {
+                return;
+            }
+
+            return new Promise((resolve, reject) => {
+                image.addEventListener('load', resolve);
+                image.addEventListener('error', resolve);
+            });
+        }));
+    });
+}
+
+export {
+    getPageSize,
+    extractMarkup,
+    extractCssContent,
+    setupPageForCrawling,
+    openLocalPage,
+    waitUntilComplete,
+    loadLazyImages
+};

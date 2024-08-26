@@ -1,7 +1,7 @@
 import { PuppeteerCrawler, Dataset, KeyValueStore } from 'crawlee';
 import { startWebServer, stopWebServer } from './modules/server.js';
-import { savePage, saveScreen, saveSvg, screenshotSvg } from './modules/data.js';
-import { getPageSize, setupPageForCrawling, openLocalPage } from './modules/browser.js';
+import { augmentPage, savePage, saveScreen, saveSvg, screenshotSvg } from './modules/data.js';
+import { getPageSize, setupPageForCrawling, openLocalPage, loadLazyImages } from './modules/browser.js';
 import { checkSimilarity } from "./modules/similarity.js";
 import { join } from "path";
 
@@ -22,7 +22,7 @@ const crawler = new PuppeteerCrawler({
 
     async requestHandler({ request, page, enqueueLinks, saveSnapshot, log }) {
         //const keyPrefix = request.url.replace(/[:/]/g, '_');
-        const keyPrefix = 'website';
+        const basePrefix = 'website';
 
         await page.setJavaScriptEnabled(true);
 
@@ -35,56 +35,60 @@ const crawler = new PuppeteerCrawler({
             });
         });
 
-        await page.evaluate(async () => {
-            document.body.scrollIntoView(false);
-
-            await Promise.all(Array.from(document.getElementsByTagName('img'), image => {
-                if (image.complete) {
-                    return;
-                }
-
-                return new Promise((resolve, reject) => {
-                    image.addEventListener('load', resolve);
-                    image.addEventListener('error', resolve);
-                });
-            }));
-        });
+        await loadLazyImages(page);
 
         console.log('Saving page...');
 
-        await savePage(page, keyPrefix, KeyValueStore);
-        let similarities = {};
+        await savePage(page, basePrefix, KeyValueStore);
 
-        for (const [viewportName, viewportSize] of Object.entries(VIEWPORT_SIZES)) {
-            console.log('Saving viewport ' + viewportName + '...');
+        let augmentedPagePrefixesWithNames = await augmentPage(page.browser(), basePrefix, KeyValueStore)
+        var allPrefixes = [[basePrefix, undefined], ...augmentedPagePrefixesWithNames];
 
-            const localPage = await openLocalPage(page.browser(), viewportSize, keyPrefix);
-            await localPage.setJavaScriptEnabled(true);
+        for (let i = 0; i < allPrefixes.length; i++) {
+            let [prefix, augmenterName] = allPrefixes[i];
+            let isAugmented = !!augmenterName;
 
-            const pageSize = await getPageSize(localPage);
-            await localPage.setViewport({ width: pageSize.width, height: pageSize.height });
+            let similarities = {};
+            let pageSizes = {};
 
-            console.log('Saving screen');
-            let screenshotName = await saveScreen(localPage, keyPrefix, viewportName, KeyValueStore);
+            console.log('Processing prefix ' + prefix + '...');
 
-            console.log('Saving SVG');
-            await saveSvg(localPage, pageSize, keyPrefix, viewportName, KeyValueStore);
+            for (const [viewportName, viewportSize] of Object.entries(VIEWPORT_SIZES)) {
+                console.log('Saving viewport ' + viewportName + '...');
 
-            console.log('Screenshotting SVG');
-            let svgBitmapName = await screenshotSvg(localPage.browser(), keyPrefix, viewportName, pageSize, KeyValueStore);
+                const localPage = await openLocalPage(page.browser(), prefix, viewportSize);
+                await localPage.setJavaScriptEnabled(true);
 
-            console.log('Calculating similarity');
-            similarities[viewportName] = await checkSimilarity(
-                join('storage/key_value_stores/default', screenshotName),
-                join('storage/key_value_stores/default', svgBitmapName)
-            );
+                const pageSize = await getPageSize(localPage);
+                await localPage.setViewport({ width: pageSize.width, height: pageSize.height });
+
+                console.log('Saving screen');
+                let screenshotName = await saveScreen(localPage, prefix, viewportName, KeyValueStore);
+
+                console.log('Saving SVG');
+                await saveSvg(localPage, pageSize, prefix, viewportName, KeyValueStore);
+
+                console.log('Screenshotting SVG');
+                let svgBitmapName = await screenshotSvg(localPage.browser(), prefix, viewportName, pageSize, KeyValueStore);
+
+                console.log('Calculating similarity');
+                similarities[viewportName] = await checkSimilarity(
+                    join('storage/key_value_stores/default', screenshotName),
+                    join('storage/key_value_stores/default', svgBitmapName)
+                );
+
+                pageSizes[viewportName] = pageSize;
+            }
+
+            await Dataset.pushData({
+                url: request.url,
+                keyPrefix: prefix,
+                similarities: similarities,
+                pageSizes: pageSizes,
+                isAugmented: isAugmented,
+                augmenterName: augmenterName,
+            });
         }
-
-        await Dataset.pushData({
-            url: request.url,
-            keyPrefix: keyPrefix,
-            similarities: similarities,
-        });
     },
 
     maxRequestsPerCrawl: 50,
