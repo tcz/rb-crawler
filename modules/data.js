@@ -3,12 +3,12 @@ import {cleanSvg} from "./svg.js";
 import fs from 'fs';
 import {dirname, join, resolve} from "path";
 import {fileURLToPath} from "url";
+import AWS from 'aws-sdk';
 
 import DeleteRandomNodesDataAugmenter from "./data_augmenters/DeleteRandomNodesDataAugmenter.js";
 import PermuteNodesDataAugmenter from "./data_augmenters/PermuteNodesDataAugmenter.js";
 import DeleteRandomCssRulesDataAugmenter from "./data_augmenters/DeleteRandomCssRulesDataAugmenter.js";
 import ChangeCssRulesDataAugmenter from "./data_augmenters/ChangeCssRulesDataAugmenter.js";
-import NoOpDataAugmenter from "./data_augmenters/NoOpDataAugmenter.js";
 import PermuteCssRulesDataAugmenter from "./data_augmenters/PermuteCssRulesDataAugmenter.js";
 
 const domToSvgPath = resolve(join(dirname(fileURLToPath(import.meta.url)), '../build/dom-to-svg.js'));
@@ -88,6 +88,8 @@ async function saveSvg(page, pageSize, key, viewportName, store) {
 
     await store.setValue(key + '-' + viewportName + '-svg', svg, { contentType: 'image/svg+xml' });
     await store.setValue(key + '-' + viewportName + '-svg-clean', svgClean, { contentType: 'image/svg+xml' });
+
+    return svg.length;
 }
 
 async function savePage(page, key, store) {
@@ -101,6 +103,54 @@ async function savePage(page, key, store) {
     let compositeMarkup = markup + "\n\n<style>\n" + cssContentsText + "\n</style>";
 
     await store.setValue(key + '-page-composite', compositeMarkup, { contentType: 'text/html' });
+}
+
+async function savePageToCloud(runName, key, viewportNames) {
+    const s3 = new AWS.S3();
+    const basePath = resolve(join(dirname(fileURLToPath(import.meta.url)), '../'));
+
+    const filesToUpload = [
+        key + '-page.html',
+        key + '-page.css',
+        key + '-page-composite.html',
+    ];
+
+    for (const viewportName of viewportNames) {
+        filesToUpload.push(key + '-' + viewportName + '-svg.svg');
+        filesToUpload.push(key + '-' + viewportName + '-svg-clean.svg');
+        filesToUpload.push(key + '-' + viewportName + '-bitmap.png');
+        filesToUpload.push(key + '-' + viewportName + '-screenshot.png');
+    }
+
+    let uploadPromises = [];
+
+    for (const fileName of filesToUpload) {
+        const fileContent = fs.readFileSync(join(basePath, 'storage/key_value_stores/default', fileName));
+
+        const params = {
+            Bucket: 'reverse-browser',
+            Key: 'crawls/' + runName + '/' + fileName,
+            Body: fileContent,
+        };
+
+        uploadPromises.push(s3.upload(params).promise());
+    }
+
+    return Promise.all(uploadPromises);
+}
+
+async function saveDatasetToCloud(runName) {
+    const s3 = new AWS.S3();
+    const basePath = resolve(join(dirname(fileURLToPath(import.meta.url)), '../'));
+    const fileContent = fs.readFileSync(join(basePath, 'storage/key_value_stores/default/dataset.json'));
+
+    const params = {
+        Bucket: 'reverse-browser',
+        Key: 'crawls/' + runName + '/dataset.json',
+        Body: fileContent,
+    };
+
+    return s3.upload(params).promise();
 }
 
 function selectRandomAugmenter() {
@@ -139,4 +189,4 @@ async function augmentPage(browser, basePrefix, store) {
     return prefixes;
 }
 
-export { screenshotSvg, saveScreen, saveSvg, savePage, augmentPage };
+export { screenshotSvg, saveScreen, saveSvg, savePage, savePageToCloud, saveDatasetToCloud, augmentPage };

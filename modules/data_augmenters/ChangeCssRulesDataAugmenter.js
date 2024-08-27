@@ -29,7 +29,7 @@ class ChangeCssRulesDataAugmenter {
                 if (matches) {
                     let number = parseFloat(matches[1]);
                     let unit = matches[2];
-                    let newNumber = number + Math.random() * 10 - 5;
+                    let newNumber = number * (1 + (Math.random() - 0.5));
                     return newNumber.toFixed(unit === 'px' ? 0 : 2) + unit;
                 }
                 return propertyValue;

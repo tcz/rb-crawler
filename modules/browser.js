@@ -1,16 +1,12 @@
 import fs from 'fs';
 import path, {dirname, join, resolve} from 'path';
 import {fileURLToPath} from "url";
-import crypto from 'crypto';
+import {shortId} from './utils.js';
+import robotsParser from "robots-txt-parser";
 
 const root = resolve(join(dirname(fileURLToPath(import.meta.url)), '../storage/key_value_stores/default'));
 
 let offlinedUrls = {};
-
-function shortId(url) {
-    const hash = crypto.createHash('md5').update(url).digest('hex');
-    return hash.substring(0, 5);
-}
 
 async function setupPageForCrawling(page) {
     await page.setJavaScriptEnabled(false);
@@ -49,14 +45,24 @@ async function setupPageForCrawling(page) {
         const basenameWithoutParams = basename.split('?')[0];
         const extension = basenameWithoutParams.includes('.') ? ('.' + basenameWithoutParams.split('.').pop()) : '';
         const newName = '/' + shortId(url) + extension;
-        const buffer = await response.buffer();
 
-        fs.writeFileSync(path.join(root, newName), buffer);
-
-        offlinedUrls[url] = newName;
+        try {
+            const buffer = await response.buffer();
+            fs.writeFileSync(path.join(root, newName), buffer);
+            offlinedUrls[url] = newName;
+        } catch (error) {
+            console.error("Could not offline " + url + ", error:", error);
+        }
     });
 
-    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+    //page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+}
+
+function cleanUpCache() {
+    for (const url in offlinedUrls) {
+        fs.unlinkSync(path.join(root, offlinedUrls[url]));
+    }
+    offlinedUrls = {};
 }
 
 async function getPageSize(page) {
@@ -214,6 +220,32 @@ function loadLazyImages(page) {
     });
 }
 
+async function isSiteRobotFriendly(url) {
+    const {protocol, hostname} = new URL(url);
+    const domain = protocol + '//' + hostname;
+
+    const robotsToTest = [
+        'Googlebot',
+        'OAI-SearchBot',
+        'ChatGPT-User',
+        'GPTBot',
+        'ReverseBrowser'
+    ];
+
+    for (const robot of robotsToTest) {
+        const robotsParserInstance = robotsParser({
+                userAgent: robot,
+                allowOnNeutral: true
+            });
+
+        await robotsParserInstance.useRobotsFor(domain);
+        if (!robotsParserInstance.canCrawlSync(url)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 export {
     getPageSize,
     extractMarkup,
@@ -221,5 +253,7 @@ export {
     setupPageForCrawling,
     openLocalPage,
     waitUntilComplete,
-    loadLazyImages
+    loadLazyImages,
+    cleanUpCache,
+    isSiteRobotFriendly
 };
