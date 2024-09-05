@@ -130,11 +130,16 @@ async function extractCssContent(page) {
 }
 
 async function waitUntilComplete(page) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         async function checkReadyState() {
-            var readyState = await page.evaluate(function () {
-                return document.readyState;
-            });
+            try {
+                var readyState = await page.evaluate(function () {
+                    return document.readyState;
+                });
+            } catch (e) {
+                reject();
+                return;
+            }
 
             if ("complete" === readyState) {
                 setTimeout(resolve, 2000);
@@ -143,6 +148,7 @@ async function waitUntilComplete(page) {
             }
         }
         checkReadyState();
+        setTimeout(reject, 30000);
     });
 }
 
@@ -246,6 +252,25 @@ async function isSiteRobotFriendly(url) {
     return true;
 }
 
+async function doesHaveMediaQueries(page) {
+    return await page.evaluate(() => {
+        // Since it's an already crawled page, there will only be <style> tags.
+        let styles = document.getElementsByTagName('style');
+        for (let i = 0; i < styles.length; i++) {
+            let style = styles[i];
+            let cssRules = style.sheet.cssRules;
+
+            for (let j = 0; j < cssRules.length; j++) {
+                if (cssRules[j].type === CSSRule.MEDIA_RULE) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    });
+}
+
 export {
     getPageSize,
     extractMarkup,
@@ -255,5 +280,6 @@ export {
     waitUntilComplete,
     loadLazyImages,
     cleanUpCache,
-    isSiteRobotFriendly
+    isSiteRobotFriendly,
+    doesHaveMediaQueries
 };

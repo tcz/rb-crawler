@@ -1,23 +1,35 @@
-import { PuppeteerCrawler, Dataset, KeyValueStore } from 'crawlee';
+import { PuppeteerCrawler, Dataset, KeyValueStore, RequestQueue } from 'crawlee';
 import { startWebServer, stopWebServer } from './modules/server.js';
 import { augmentPage, savePageToCloud, saveDatasetToCloud, savePage,
     saveScreen, saveSvg, screenshotSvg } from './modules/data.js';
-import { getPageSize, setupPageForCrawling, openLocalPage, loadLazyImages,
-    cleanUpCache, isSiteRobotFriendly } from './modules/browser.js';
-import { checkSimilarity } from "./modules/similarity.js";
+import {
+    getPageSize, setupPageForCrawling, openLocalPage, loadLazyImages,
+    cleanUpCache, isSiteRobotFriendly, doesHaveMediaQueries
+} from './modules/browser.js';
+import {checkSimilarity, isAnyBlank} from "./modules/similarity.js";
 import { shortId } from './modules/utils.js';
 import { join } from "path";
 
 let VIEWPORT_SIZES = {
     DESKTOP: { width: 1440, height: 900 },
+    TABLET: { width: 834, height: 1210 }, // iPad Pro 11-inch (M4)
     MOBILE: { width: 393, height: 852 }, // iPhone 15
 };
 
-let runName = 'run-' + new Date().toISOString().replace(/[:.]/g, '-');
-let robotsStatistics = {
-    rejected: 0,
-    allowed: 0,
-};
+// Read run name from env variable, fail if does not exist
+let runName = process.env.RUN_NAME;
+if (!runName) {
+    console.error('Please set the RUN_NAME environment variable.');
+    process.exit(1);
+
+}
+let robotsStatistics = await KeyValueStore.getValue('robotsStatistics');
+if (!robotsStatistics) {
+    robotsStatistics = {
+        rejected: 0,
+        allowed: 0,
+    };
+}
 
 const crawler = new PuppeteerCrawler({
 
@@ -28,9 +40,16 @@ const crawler = new PuppeteerCrawler({
             if (!(await isSiteRobotFriendly(request.url))) {
                 request.noRetry = true;
                 robotsStatistics.rejected++;
+
+                await KeyValueStore.setValue('robotsStatistics', robotsStatistics);
+                console.log('Robot statistics:', robotsStatistics);
+
                 throw new Error('Site is not friendly to robots, skipping: ' + request.url);
             }
             robotsStatistics.allowed++;
+
+            await KeyValueStore.setValue('robotsStatistics', robotsStatistics);
+            console.log('Robot statistics:', robotsStatistics);
         },
         async (crawlingContext, gotoOptions) => {
             const { page } = crawlingContext;
@@ -69,6 +88,8 @@ const crawler = new PuppeteerCrawler({
             let similarities = {};
             let pageSizes = {};
             let svgLengths = {};
+            let areThereBlankScreenshots = false;
+            let hasMediaQueries = undefined;
 
             console.log('Processing prefix ' + prefix + '...');
 
@@ -77,6 +98,10 @@ const crawler = new PuppeteerCrawler({
 
                 const localPage = await openLocalPage(page.browser(), prefix, viewportSize);
                 await localPage.setJavaScriptEnabled(true);
+
+                if (hasMediaQueries === undefined) {
+                    hasMediaQueries = await doesHaveMediaQueries(localPage);
+                }
 
                 const pageSize = await getPageSize(localPage);
                 await localPage.setViewport({ width: pageSize.width, height: pageSize.height });
@@ -96,6 +121,14 @@ const crawler = new PuppeteerCrawler({
                     join('storage/key_value_stores/default', svgBitmapName)
                 );
 
+                console.log('Calculating blank screens');
+                if (!areThereBlankScreenshots) {
+                    areThereBlankScreenshots = await isAnyBlank(
+                        join('storage/key_value_stores/default', screenshotName),
+                        join('storage/key_value_stores/default', svgBitmapName)
+                    );
+                }
+
                 pageSizes[viewportName] = pageSize;
                 svgLengths[viewportName] = svgLength;
             }
@@ -108,6 +141,8 @@ const crawler = new PuppeteerCrawler({
                 svgLengths: svgLengths,
                 isAugmented: isAugmented,
                 augmenterName: augmenterName,
+                areThereBlankScreenshots: areThereBlankScreenshots,
+                hasMediaQueries: hasMediaQueries,
             });
 
             console.log('Uploading pages');
@@ -147,7 +182,7 @@ startWebServer();
 // Read urls.txt and put all the URLs per line in an array. Filter out empty lines.
 import fs from 'fs';
 let urls = fs.readFileSync('urls.txt', 'utf-8').split('\n').filter(Boolean);
-urls = urls.slice(0, 1000);
+urls = urls.slice(0, 50000);
 
 // Add first URL to the queue and start the crawl.
 // await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
@@ -155,6 +190,7 @@ urls = urls.slice(0, 1000);
 //     'https://this-does-not-exists.com/bla-bla.html',
 //     'https://en.wikipedia.org/wiki/Main_Page',
 //     'https://www.nytimes.com/',
+//     'http://0.0.0.0:9999/test3.html'
 // ]);
 // await crawler.run(['http://0.0.0.0:9999/test3.html']);
 // await crawler.run(['https://www.nytimes.com/']);
@@ -169,4 +205,4 @@ await stopWebServer();
 
 console.log('Robots statistics:', robotsStatistics);
 
-process.exit(1);
+process.exit(0);

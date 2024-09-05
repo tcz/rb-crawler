@@ -136,7 +136,12 @@ async function savePageToCloud(runName, key, viewportNames) {
         uploadPromises.push(s3.upload(params).promise());
     }
 
-    return Promise.all(uploadPromises);
+    await Promise.all(uploadPromises);
+
+    // Turn this off for debugging.
+    for (const fileName of filesToUpload) {
+        fs.unlinkSync(join(basePath, 'storage/key_value_stores/default', fileName));
+    }
 }
 
 async function saveDatasetToCloud(runName) {
