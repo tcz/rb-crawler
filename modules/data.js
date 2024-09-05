@@ -4,6 +4,7 @@ import fs from 'fs';
 import {dirname, join, resolve} from "path";
 import {fileURLToPath} from "url";
 import AWS from 'aws-sdk';
+import { PurgeCSS } from 'purgecss'
 
 import DeleteRandomNodesDataAugmenter from "./data_augmenters/DeleteRandomNodesDataAugmenter.js";
 import PermuteNodesDataAugmenter from "./data_augmenters/PermuteNodesDataAugmenter.js";
@@ -89,7 +90,27 @@ async function saveSvg(page, pageSize, key, viewportName, store) {
     await store.setValue(key + '-' + viewportName + '-svg', svg, { contentType: 'image/svg+xml' });
     await store.setValue(key + '-' + viewportName + '-svg-clean', svgClean, { contentType: 'image/svg+xml' });
 
-    return svg.length;
+    return svgClean.length;
+}
+
+async function removeUnusedCss(markup, css) {
+    let results = await new PurgeCSS().purge({
+        content: [{
+                raw: markup,
+                extension: 'html'
+        }],
+        css: [{
+                raw: css
+        }],
+        variables: true
+    });
+
+    if (!results[0]) {
+        console.log('Something went wrong when purging CSS, returning full CSS');
+        return css;
+    }
+
+    return results[0].css;
 }
 
 async function savePage(page, key, store) {
@@ -97,15 +118,17 @@ async function savePage(page, key, store) {
     const markup = await extractMarkup(page);
     const cssContentsText = cssContents.join("\n\n")
 
-    await store.setValue(key + '-page', cssContentsText, { contentType: 'text/css' });
+    const cleanedCss = await removeUnusedCss(markup, cssContentsText);
+
+    await store.setValue(key + '-page', cleanedCss, { contentType: 'text/css' });
     await store.setValue(key + '-page', markup, { contentType: 'text/html' });
 
-    let compositeMarkup = markup + "\n\n<style>\n" + cssContentsText + "\n</style>";
+    let compositeMarkup = markup + "\n\n<style>\n" + cleanedCss + "\n</style>";
 
     await store.setValue(key + '-page-composite', compositeMarkup, { contentType: 'text/html' });
 }
 
-async function savePageToCloud(runName, key, viewportNames) {
+async function savePageToCloud(runName, key, viewportNames, keepFiles) {
     const s3 = new AWS.S3();
     const basePath = resolve(join(dirname(fileURLToPath(import.meta.url)), '../'));
 
@@ -138,10 +161,18 @@ async function savePageToCloud(runName, key, viewportNames) {
 
     await Promise.all(uploadPromises);
 
-    // Turn this off for debugging.
-    for (const fileName of filesToUpload) {
-        fs.unlinkSync(join(basePath, 'storage/key_value_stores/default', fileName));
+    if (!keepFiles) {
+        for (const fileName of filesToUpload) {
+            fs.unlinkSync(join(basePath, 'storage/key_value_stores/default', fileName));
+        }
     }
+}
+
+function getPageDataSize(key) {
+    const basePath = resolve(join(dirname(fileURLToPath(import.meta.url)), '../'));
+    let stats = fs.statSync(join(basePath, 'storage/key_value_stores/default', key + '-page-composite.html'));
+
+    return stats.size;
 }
 
 async function saveDatasetToCloud(runName) {
@@ -194,4 +225,13 @@ async function augmentPage(browser, basePrefix, store) {
     return prefixes;
 }
 
-export { screenshotSvg, saveScreen, saveSvg, savePage, savePageToCloud, saveDatasetToCloud, augmentPage };
+export {
+    screenshotSvg,
+    saveScreen,
+    saveSvg,
+    savePage,
+    savePageToCloud,
+    saveDatasetToCloud,
+    augmentPage,
+    getPageDataSize
+};

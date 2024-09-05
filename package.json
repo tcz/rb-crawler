@@ -14,8 +14,10 @@
     "crawlee": "^3.11.2",
     "dom-to-svg": "^0.12.2",
     "express": "^4.18.3",
+    "mime-types": "^2.1.35",
     "puppeteer": "^22.3.0",
-    "robots-txt-parser": "^2.0.3",
+    "purgecss": "^6.0.0",
+    "robots-txt-parser": "github:tcz/robots-txt-parser",
     "traverse": "^0.6.8",
     "xml2js": "^0.6.2"
   }

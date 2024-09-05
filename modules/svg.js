@@ -34,7 +34,7 @@ async function cleanSvg(svgText) {
                 }
             });
 
-            const builder = new xml2js.Builder();
+            const builder = new xml2js.Builder({ renderOpts: { 'pretty': false }});
             const xml = builder.buildObject(result);
 
             resolve(xml.replace(/http:\/\/localhost:3000/g, ''));

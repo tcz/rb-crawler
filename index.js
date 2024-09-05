@@ -1,10 +1,10 @@
 import { PuppeteerCrawler, Dataset, KeyValueStore, RequestQueue } from 'crawlee';
 import { startWebServer, stopWebServer } from './modules/server.js';
 import { augmentPage, savePageToCloud, saveDatasetToCloud, savePage,
-    saveScreen, saveSvg, screenshotSvg } from './modules/data.js';
+    saveScreen, saveSvg, screenshotSvg, getPageDataSize } from './modules/data.js';
 import {
     getPageSize, setupPageForCrawling, openLocalPage, loadLazyImages,
-    cleanUpCache, isSiteRobotFriendly, doesHaveMediaQueries
+    purgeCache, isSiteRobotFriendly, doesHaveMediaQueries
 } from './modules/browser.js';
 import {checkSimilarity, isAnyBlank} from "./modules/similarity.js";
 import { shortId } from './modules/utils.js';
@@ -21,13 +21,15 @@ let runName = process.env.RUN_NAME;
 if (!runName) {
     console.error('Please set the RUN_NAME environment variable.');
     process.exit(1);
-
 }
+
+let keepFiles = (parseInt(process.env.KEEP_FILES, 10) === 1);
+
 let robotsStatistics = await KeyValueStore.getValue('robotsStatistics');
 if (!robotsStatistics) {
     robotsStatistics = {
-        rejected: 0,
-        allowed: 0,
+        rejected: {},
+        allowed: {},
     };
 }
 
@@ -39,17 +41,23 @@ const crawler = new PuppeteerCrawler({
 
             if (!(await isSiteRobotFriendly(request.url))) {
                 request.noRetry = true;
-                robotsStatistics.rejected++;
+                robotsStatistics.rejected[request.url] = true;
 
                 await KeyValueStore.setValue('robotsStatistics', robotsStatistics);
-                console.log('Robot statistics:', robotsStatistics);
+                console.log('Robot statistics:', {
+                    rejected: Object.keys(robotsStatistics.rejected).length,
+                    allowed: Object.keys(robotsStatistics.allowed).length
+                });
 
                 throw new Error('Site is not friendly to robots, skipping: ' + request.url);
             }
-            robotsStatistics.allowed++;
+            robotsStatistics.allowed[request.url] = true;
 
             await KeyValueStore.setValue('robotsStatistics', robotsStatistics);
-            console.log('Robot statistics:', robotsStatistics);
+            console.log('Robot statistics:', {
+                rejected: Object.keys(robotsStatistics.rejected).length,
+                allowed: Object.keys(robotsStatistics.allowed).length
+            });
         },
         async (crawlingContext, gotoOptions) => {
             const { page } = crawlingContext;
@@ -90,6 +98,7 @@ const crawler = new PuppeteerCrawler({
             let svgLengths = {};
             let areThereBlankScreenshots = false;
             let hasMediaQueries = undefined;
+            let pageDataSize = getPageDataSize(prefix);
 
             console.log('Processing prefix ' + prefix + '...');
 
@@ -143,13 +152,14 @@ const crawler = new PuppeteerCrawler({
                 augmenterName: augmenterName,
                 areThereBlankScreenshots: areThereBlankScreenshots,
                 hasMediaQueries: hasMediaQueries,
+                pageDataSize: pageDataSize,
             });
 
             console.log('Uploading pages');
-            await savePageToCloud(runName, prefix, Object.keys(VIEWPORT_SIZES));
+            await savePageToCloud(runName, prefix, Object.keys(VIEWPORT_SIZES), keepFiles);
 
             console.log('Cleaning up cache');
-            cleanUpCache();
+            purgeCache();
         }
     },
 
@@ -163,8 +173,10 @@ const crawler = new PuppeteerCrawler({
     failedRequestHandler: function(data) {
         console.log('Failed request after all attempts, ignoring:', data.request.url);
         console.log('Cleaning up cache');
-        cleanUpCache();
+        purgeCache();
     },
+
+    persistCookiesPerSession: false,
 
     launchContext: {
         useIncognitoPages: true,
@@ -174,7 +186,6 @@ const crawler = new PuppeteerCrawler({
 
 startWebServer();
 
-
 // Generate a list of URLs like this: https://en.wikipedia.org/wiki/Main_Page?test=1 where the number increases from 1
 // to 1000.
 // const urls = Array.from({ length: 1000 }, (_, i) => `https://en.wikipedia.org/wiki/Main_Page?test=${i + 1}`);
@@ -183,9 +194,11 @@ startWebServer();
 import fs from 'fs';
 let urls = fs.readFileSync('urls.txt', 'utf-8').split('\n').filter(Boolean);
 urls = urls.slice(0, 50000);
+urls = urls.slice(0, 10);
 
 // Add first URL to the queue and start the crawl.
 // await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
+// await crawler.run(["https://www.eddrick.com/"]);
 // await crawler.run([
 //     'https://this-does-not-exists.com/bla-bla.html',
 //     'https://en.wikipedia.org/wiki/Main_Page',
@@ -201,8 +214,25 @@ await crawler.run(urls);
 console.log('Uploading dataset');
 await Dataset.exportToJSON('dataset');
 await saveDatasetToCloud(runName);
-await stopWebServer();
 
-console.log('Robots statistics:', robotsStatistics);
+console.log('Robot statistics:', {
+    rejected: Object.keys(robotsStatistics.rejected).length,
+    allowed: Object.keys(robotsStatistics.allowed).length
+});
+
+function waitForKey(keyCode) {
+    return new Promise(resolve => {
+        process.stdin.on('data',function (chunk) {
+            if (chunk[0] === keyCode) {
+                resolve();
+                process.stdin.pause();
+            }
+        });
+    });
+}
+console.log('Done, press ENTER to exit...');
+await waitForKey(10);
+
+await stopWebServer();
 
 process.exit(0);

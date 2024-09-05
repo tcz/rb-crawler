@@ -3,6 +3,7 @@ import path, {dirname, join, resolve} from 'path';
 import {fileURLToPath} from "url";
 import {shortId} from './utils.js';
 import robotsParser from "robots-txt-parser";
+import mime from 'mime-types';
 
 const root = resolve(join(dirname(fileURLToPath(import.meta.url)), '../storage/key_value_stores/default'));
 
@@ -43,7 +44,13 @@ async function setupPageForCrawling(page) {
 
         const basename = path.basename(url);
         const basenameWithoutParams = basename.split('?')[0];
-        const extension = basenameWithoutParams.includes('.') ? ('.' + basenameWithoutParams.split('.').pop()) : '';
+        let extension = basenameWithoutParams.includes('.') ? ('.' + basenameWithoutParams.split('.').pop()) : '';
+
+        const headers = response.headers();
+        if (headers['content-type']) {
+            extension = extensionFromContentType(headers['content-type'], extension);
+        }
+
         const newName = '/' + shortId(url) + extension;
 
         try {
@@ -58,11 +65,24 @@ async function setupPageForCrawling(page) {
     //page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 }
 
-function cleanUpCache() {
+function purgeCache() {
     for (const url in offlinedUrls) {
-        fs.unlinkSync(path.join(root, offlinedUrls[url]));
+        // Check if file is older than 5 minutes.
+        let absolutePath = path.join(root, offlinedUrls[url]);
+        if (fs.statSync(absolutePath).mtime < Date.now() - 300000) {
+            fs.unlinkSync(absolutePath);
+            delete offlinedUrls[url];
+        }
     }
     offlinedUrls = {};
+}
+
+function extensionFromContentType(contentType, fallback) {
+    let extension = mime.extension(contentType);
+    if (!extension || 'bin' === extension) {
+        return fallback;
+    }
+    return '.' + extension;
 }
 
 async function getPageSize(page) {
@@ -279,7 +299,7 @@ export {
     openLocalPage,
     waitUntilComplete,
     loadLazyImages,
-    cleanUpCache,
+    purgeCache,
     isSiteRobotFriendly,
     doesHaveMediaQueries
 };
