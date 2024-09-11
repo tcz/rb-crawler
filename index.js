@@ -33,6 +33,14 @@ if (!robotsStatistics) {
     };
 }
 
+async function saveDataset() {
+    console.log('Uploading dataset');
+    await Dataset.exportToJSON('dataset');
+    await saveDatasetToCloud(runName);
+}
+
+await saveDataset();
+
 const crawler = new PuppeteerCrawler({
 
     preNavigationHooks: [
@@ -194,7 +202,6 @@ startWebServer();
 import fs from 'fs';
 let urls = fs.readFileSync('urls.txt', 'utf-8').split('\n').filter(Boolean);
 urls = urls.slice(0, 50000);
-urls = urls.slice(0, 10);
 
 // Add first URL to the queue and start the crawl.
 // await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
@@ -211,9 +218,7 @@ urls = urls.slice(0, 10);
 // await crawler.run(['https://www.empireonline.com/movies/features/star-wars-behind-scenes/']);
 await crawler.run(urls);
 
-console.log('Uploading dataset');
-await Dataset.exportToJSON('dataset');
-await saveDatasetToCloud(runName);
+await saveDataset();
 
 console.log('Robot statistics:', {
     rejected: Object.keys(robotsStatistics.rejected).length,

@@ -2,4 +2,4 @@ rm -rf storage/datasets/default/*
 rm -rf storage/key_value_stores/default/*
 rm -rf storage/request_queues/default/*
 
-time while true; do AWS_PROFILE=personal CRAWLEE_PURGE_ON_START=0 CRAWLEE_MEMORY_MBYTES=41000 RUN_NAME=tuesday-sep-3 node index.js | tee -a log.txt; sleep 10; done
+time while true; do AWS_PROFILE=personal CRAWLEE_PURGE_ON_START=0 CRAWLEE_MEMORY_MBYTES=41000 RUN_NAME=20240911 node index.js | tee -a log.txt; sleep 10; done
