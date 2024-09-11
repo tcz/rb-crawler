@@ -5,6 +5,7 @@ import {dirname, join, resolve} from "path";
 import {fileURLToPath} from "url";
 import AWS from 'aws-sdk';
 import { PurgeCSS } from 'purgecss'
+import {minify} from 'html-minifier';
 
 import DeleteRandomNodesDataAugmenter from "./data_augmenters/DeleteRandomNodesDataAugmenter.js";
 import PermuteNodesDataAugmenter from "./data_augmenters/PermuteNodesDataAugmenter.js";
@@ -113,17 +114,29 @@ async function removeUnusedCss(markup, css) {
     return results[0].css;
 }
 
+function minifyMarkup(markup) {
+    var result = minify(markup, {
+        collapseWhitespace: true,
+        removeComments: true,
+        sortAttributes: true,
+        sortClassName: true,
+    });
+    return result;
+}
+
 async function savePage(page, key, store) {
     const cssContents = await extractCssContent(page);
     const markup = await extractMarkup(page);
     const cssContentsText = cssContents.join("\n\n")
 
     const cleanedCss = await removeUnusedCss(markup, cssContentsText);
+    const minifiedMarkup = minifyMarkup(markup);
 
     await store.setValue(key + '-page', cleanedCss, { contentType: 'text/css' });
-    await store.setValue(key + '-page', markup, { contentType: 'text/html' });
+    await store.setValue(key + '-page-full', markup, { contentType: 'text/html' });
+    await store.setValue(key + '-page', minifiedMarkup, { contentType: 'text/html' });
 
-    let compositeMarkup = markup + "\n\n<style>\n" + cleanedCss + "\n</style>";
+    let compositeMarkup = minifiedMarkup + "\n\n<style>\n" + cleanedCss + "\n</style>";
 
     await store.setValue(key + '-page-composite', compositeMarkup, { contentType: 'text/html' });
 }

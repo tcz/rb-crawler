@@ -8,8 +8,8 @@ async function collectSvgTokens(svgText) {
         let attributeNames = new Set();
 
         if (node.attr) {
-            for (const attr in node.attr) {
-                attributeNames.add(attr);
+            for (const attribute in node.attr) {
+                attributeNames.add(attribute);
             }
         }
 

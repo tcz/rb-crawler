@@ -204,7 +204,7 @@ async function extractMarkup(page) {
     }, offlinedUrls);
 
     let html = await page.evaluate(async () => {
-        return document.documentElement.outerHTML;
+        return document.body.outerHTML;
     });
 
     return removeHtmlComments(html);

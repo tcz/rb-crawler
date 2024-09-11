@@ -1,46 +1,66 @@
-import xml2js from "xml2js";
-import traverse from "traverse";
+    import xmldoc from 'xmldoc';
 
 async function cleanSvg(svgText) {
     const attributesToRemove = ['role'];
     const attributePrefixToRemove = ['data-', 'aria-'];
+    const nodesToRemove = ['title'];
+    const nodesToRemoveIfEmpty = ['g', 'style'];
 
     return new Promise((resolve, reject) => {
-        xml2js.parseString(svgText, function (err, result) {
-            if (err) {
-                console.error(err);
-                reject(err);
+        function cleanNode(node) {
+            if (node.constructor.name === 'XmlCommentNode') {
+                return null;
             }
-
-            traverse(result).forEach(function (node) {
-                if (this.parent && this.parent.node['$']) {
-                    for (const attr of attributesToRemove) {
-                        if (this.parent.node['$'][attr]) {
-                            delete this.parent.node['$'][attr];
-                        }
-                    }
-
-                    if (this.parent.node['$']['href'] && this.parent.node['$']['href'].startsWith('http')) {
-                        this.parent.node['$']['href'] = '';
-                    }
-
-                    for (const attr in this.parent.node['$']) {
-                        for (const prefix of attributePrefixToRemove) {
-                            if (attr.startsWith(prefix)) {
-                                delete this.parent.node['$'][attr];
-                            }
-                        }
+            if (!node.name) {
+                return node;
+            }
+            if (nodesToRemove.includes(node.name.toLowerCase())) {
+                return null;
+            }
+            if (nodesToRemoveIfEmpty.includes(node.name.toLowerCase()) && node.children.length === 0) {
+                return null;
+            }
+            if (node.attr) {
+                for (const attribute of attributesToRemove) {
+                    if (attribute in node.attr) {
+                        delete node.attr[attribute];
                     }
                 }
-            });
 
-            const builder = new xml2js.Builder({ renderOpts: { 'pretty': false }});
-            const xml = builder.buildObject(result);
+                for (const attribute in node.attr) {
+                    for (const prefix of attributePrefixToRemove) {
+                        if (attribute.startsWith(prefix)) {
+                            delete node.attr[attribute];
+                        }
+                    }
+                    if (attribute === 'href'
+                        && (node.attr[attribute].startsWith('http') || node.name.toLowerCase() === 'a')) {
+                        node.attr[attribute] = '';
+                    }
+                }
+            }
 
-            resolve(xml.replace(/http:\/\/localhost:3000/g, ''));
+            if (node.children && node.name === 'svg') {
+                let i = node.children.length;
+                while (i--) {
+                    let newNode = cleanNode(node.children[i]);
+                    if (newNode === null) {
+                        node.children.splice(i, 1);
+                    } else {
+                        node.children[i] = newNode;
+                    }
+                }
+            }
 
-            resolve(xml);
-        });
+            return node;
+        }
+
+        var document = new xmldoc.XmlDocument(svgText);
+        document = cleanNode(document);
+
+        const xml = document.toString({compressed:true})
+        resolve(xml.replace(/http:\/\/localhost:3000/g, ''));
+
     });
 }
 

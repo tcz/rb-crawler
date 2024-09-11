@@ -184,7 +184,7 @@ const crawler = new PuppeteerCrawler({
     }
 });
 
-startWebServer();
+await startWebServer();
 
 // Generate a list of URLs like this: https://en.wikipedia.org/wiki/Main_Page?test=1 where the number increases from 1
 // to 1000.
@@ -192,12 +192,12 @@ startWebServer();
 
 // Read urls.txt and put all the URLs per line in an array. Filter out empty lines.
 import fs from 'fs';
-let urls = fs.readFileSync('urls.txt', 'utf-8').split('\n').filter(Boolean);
-urls = urls.slice(0, 50000);
-urls = urls.slice(0, 10);
+// let urls = fs.readFileSync('urls.txt', 'utf-8').split('\n').filter(Boolean);
+// urls = urls.slice(0, 50000);
+// urls = urls.slice(0, 10);
 
 // Add first URL to the queue and start the crawl.
-// await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
+await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
 // await crawler.run(["https://www.eddrick.com/"]);
 // await crawler.run([
 //     'https://this-does-not-exists.com/bla-bla.html',
@@ -205,11 +205,11 @@ urls = urls.slice(0, 10);
 //     'https://www.nytimes.com/',
 //     'http://0.0.0.0:9999/test3.html'
 // ]);
-// await crawler.run(['http://0.0.0.0:9999/test3.html']);
+// await crawler.run(['https://penzkerdesek.hu/test4.html']);
 // await crawler.run(['https://www.nytimes.com/']);
 // await crawler.run(['https://www.underluckystars.com/en/']);
 // await crawler.run(['https://www.empireonline.com/movies/features/star-wars-behind-scenes/']);
-await crawler.run(urls);
+// await crawler.run(urls);
 
 console.log('Uploading dataset');
 await Dataset.exportToJSON('dataset');
