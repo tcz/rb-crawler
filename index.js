@@ -33,6 +33,14 @@ if (!robotsStatistics) {
     };
 }
 
+async function saveDataset() {
+    console.log('Uploading dataset');
+    await Dataset.exportToJSON('dataset');
+    await saveDatasetToCloud(runName);
+}
+
+await saveDataset();
+
 const crawler = new PuppeteerCrawler({
 
     preNavigationHooks: [
@@ -192,12 +200,12 @@ await startWebServer();
 
 // Read urls.txt and put all the URLs per line in an array. Filter out empty lines.
 import fs from 'fs';
-// let urls = fs.readFileSync('urls.txt', 'utf-8').split('\n').filter(Boolean);
-// urls = urls.slice(0, 50000);
-// urls = urls.slice(0, 10);
+
+let urls = fs.readFileSync('urls.txt', 'utf-8').split('\n').filter(Boolean);
+urls = urls.slice(0, 50000);
 
 // Add first URL to the queue and start the crawl.
-await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
+// await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
 // await crawler.run(["https://www.eddrick.com/"]);
 // await crawler.run([
 //     'https://this-does-not-exists.com/bla-bla.html',
@@ -209,11 +217,9 @@ await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
 // await crawler.run(['https://www.nytimes.com/']);
 // await crawler.run(['https://www.underluckystars.com/en/']);
 // await crawler.run(['https://www.empireonline.com/movies/features/star-wars-behind-scenes/']);
-// await crawler.run(urls);
+await crawler.run(urls);
 
-console.log('Uploading dataset');
-await Dataset.exportToJSON('dataset');
-await saveDatasetToCloud(runName);
+await saveDataset();
 
 console.log('Robot statistics:', {
     rejected: Object.keys(robotsStatistics.rejected).length,
