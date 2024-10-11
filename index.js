@@ -23,6 +23,8 @@ if (!runName) {
     process.exit(1);
 }
 
+console.log("Run name: " + runName);
+
 let keepFiles = (parseInt(process.env.KEEP_FILES, 10) === 1);
 
 let robotsStatistics = await KeyValueStore.getValue('robotsStatistics');
@@ -165,6 +167,7 @@ const crawler = new PuppeteerCrawler({
 
             console.log('Uploading pages');
             await savePageToCloud(runName, prefix, Object.keys(VIEWPORT_SIZES), keepFiles);
+            await saveDataset();
 
             console.log('Cleaning up cache');
             purgeCache();
@@ -176,7 +179,7 @@ const crawler = new PuppeteerCrawler({
     maxRequestRetries: 2,
 
     minConcurrency: 5,
-    maxConcurrency: 50,
+    maxConcurrency: 25,
 
     failedRequestHandler: function(data) {
         console.log('Failed request after all attempts, ignoring:', data.request.url);
@@ -201,17 +204,18 @@ await startWebServer();
 // Read urls.txt and put all the URLs per line in an array. Filter out empty lines.
 import fs from 'fs';
 
-let urls = fs.readFileSync('urls.txt', 'utf-8').split('\n').filter(Boolean);
-urls = urls.slice(0, 50000);
+let urls = fs.readFileSync('urls-new.txt', 'utf-8').split('\n').filter(Boolean);
+urls = urls.slice(50000, 60000);
 
 // Add first URL to the queue and start the crawl.
-// await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
+//await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
 // await crawler.run(["https://www.eddrick.com/"]);
 // await crawler.run([
-//     'https://this-does-not-exists.com/bla-bla.html',
-//     'https://en.wikipedia.org/wiki/Main_Page',
-//     'https://www.nytimes.com/',
-//     'http://0.0.0.0:9999/test3.html'
+//     'https://simple.wikipedia.org/wiki/University_of_Oxford',
+//     // 'https://9c6cf561abd7.ngrok.app/test1.html',
+//     // 'https://9c6cf561abd7.ngrok.app/test2.html',
+//     // 'https://9c6cf561abd7.ngrok.app/test3.html',
+//     // 'https://9c6cf561abd7.ngrok.app/test4.html',
 // ]);
 // await crawler.run(['https://penzkerdesek.hu/test4.html']);
 // await crawler.run(['https://www.nytimes.com/']);
