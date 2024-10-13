@@ -175,7 +175,7 @@ const crawler = new PuppeteerCrawler({
     },
 
     maxRequestsPerCrawl: 100000,
-    requestHandlerTimeoutSecs: 300,
+    requestHandlerTimeoutSecs: 1200,
     maxRequestRetries: 2,
 
     minConcurrency: 5,
