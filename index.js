@@ -178,8 +178,8 @@ const crawler = new PuppeteerCrawler({
     requestHandlerTimeoutSecs: 1200,
     maxRequestRetries: 2,
 
-    minConcurrency: 5,
-    maxConcurrency: 25,
+    minConcurrency: 1,
+    maxConcurrency: 5,
 
     failedRequestHandler: function(data) {
         console.log('Failed request after all attempts, ignoring:', data.request.url);
