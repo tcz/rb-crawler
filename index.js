@@ -35,6 +35,11 @@ if (!robotsStatistics) {
     };
 }
 
+console.log('Robot statistics:', {
+    rejected: Object.keys(robotsStatistics.rejected).length,
+    allowed: Object.keys(robotsStatistics.allowed).length
+});
+
 async function saveDataset() {
     console.log('Uploading dataset');
     await Dataset.exportToJSON('dataset');
@@ -175,11 +180,11 @@ const crawler = new PuppeteerCrawler({
     },
 
     maxRequestsPerCrawl: 100000,
-    requestHandlerTimeoutSecs: 1200,
+    requestHandlerTimeoutSecs: 300,
     maxRequestRetries: 2,
 
-    minConcurrency: 1,
-    maxConcurrency: 5,
+    minConcurrency: 5,
+    maxConcurrency: 25,
 
     failedRequestHandler: function(data) {
         console.log('Failed request after all attempts, ignoring:', data.request.url);
@@ -191,8 +196,13 @@ const crawler = new PuppeteerCrawler({
 
     launchContext: {
         useIncognitoPages: true,
-        userAgent: "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; ReverseBrowser/1.0"
+        userAgent: "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; ReverseBrowser/1.0",
+        launchOptions: {
+            args: (process.getuid && process.getuid() === 0) ? ['--no-sandbox'] : [],
+        }
     }
+
+
 });
 
 await startWebServer();
@@ -205,7 +215,7 @@ await startWebServer();
 import fs from 'fs';
 
 let urls = fs.readFileSync('urls-new.txt', 'utf-8').split('\n').filter(Boolean);
-urls = urls.slice(50000, 60000);
+urls = urls.slice(0, 5000);
 
 // Add first URL to the queue and start the crawl.
 //await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
