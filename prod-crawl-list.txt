@@ -22,7 +22,17 @@ Robot statistics: { rejected: 49, allowed: 9358 }
 Robot statistics: { rejected: 72, allowed: 4479 }
 
 20241017-1/
-Robot statistics:
-{ rejected: 81, allowed: 4600 }
+Robot statistics: { rejected: 81, allowed: 4600 }
+
+20241018-1/
+Robot statistics: { rejected: 212, allowed: 13818 }
+
+20241021-1/
+Robot statistics: { rejected: 75, allowed: 4579 }
+
+20241022-1/
+Robot statistics: { rejected: 72, allowed: 4589 }
+
+
 
 Queue head still returned requests that need to be processed

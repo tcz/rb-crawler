@@ -1,3 +1,5 @@
+nvm install 20
+nvm use 20
 cd ~
 git clone ~/Crawler.git ~/Crawler
 git clone ~/Tools.git ~/Tools

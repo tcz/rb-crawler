@@ -23,7 +23,22 @@ if (!runName) {
     process.exit(1);
 }
 
+let runIntervalFrom = process.env.RUN_INTERVAL_FROM;
+if (undefined === runIntervalFrom) {
+    console.error('Please set the RUN_INTERVAL_FROM environment variable.');
+    process.exit(1);
+}
+runIntervalFrom = parseInt(runIntervalFrom, 10);
+
+let runIntervalTo = process.env.RUN_INTERVAL_TO;
+if (undefined === runIntervalTo) {
+    console.error('Please set the RUN_INTERVAL_TO environment variable.');
+    process.exit(1);
+}
+runIntervalTo = parseInt(runIntervalTo, 10);
+
 console.log("Run name: " + runName);
+console.log("Run interval: [" + runIntervalFrom + ', ' + runIntervalTo + "[");
 
 let keepFiles = (parseInt(process.env.KEEP_FILES, 10) === 1);
 
@@ -215,7 +230,7 @@ await startWebServer();
 import fs from 'fs';
 
 let urls = fs.readFileSync('urls-new.txt', 'utf-8').split('\n').filter(Boolean);
-urls = urls.slice(0, 5000);
+urls = urls.slice(runIntervalFrom, runIntervalTo);
 
 // Add first URL to the queue and start the crawl.
 //await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
