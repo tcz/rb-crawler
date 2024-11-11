@@ -33,6 +33,83 @@ Robot statistics: { rejected: 75, allowed: 4579 }
 20241022-1/
 Robot statistics: { rejected: 72, allowed: 4589 }
 
+20241023-1/
+Robot statistics: { rejected: 156, allowed: 9141 }
 
+rb1
+20241026-1
+Robot statistics: { rejected: 410, allowed: 27476 }
 
-Queue head still returned requests that need to be processed
+rb2 (failed)
+20241025-1
+Robot statistics: { rejected: 118, allowed: 8022 }
+
+rb3
+20241025-2
+Robot statistics: { rejected: 367, allowed: 24116 }
+
+rb4
+20241025-3
+Robot statistics: { rejected: 450, allowed: 27584 }
+
+rb5
+20241025-4
+
+rb6
+20241025-5
+Robot statistics: { rejected: 402, allowed: 27624 }
+
+rb7
+20241025-6
+Robot statistics: { rejected: 450, allowed: 27612 }
+
+rb8
+20241025-7
+Robot statistics: { rejected: 454, allowed: 27590 }
+
+rb9
+20241025-8
+Robot statistics: { rejected: 456, allowed: 27463 }
+
+rb10
+20241025-9
+Robot statistics: { rejected: 416, allowed: 27599 }
+
+rb1
+20241101-1
+Robot statistics: { rejected: 201, allowed: 13704 }
+
+rb2
+20241101-2
+Robot statistics: { rejected: 116, allowed: 8086 }
+
+rb3
+20241101-3
+Robot statistics: { rejected: 210, allowed: 13709 }
+
+rb4
+20241101-4
+Robot statistics: { rejected: 225, allowed: 13654 }
+
+rb5
+20241101-5
+Robot statistics: { rejected: 231, allowed: 13703 }
+
+rb6
+20241101-6
+Robot statistics: { rejected: 234, allowed: 13703 }
+
+rb7
+20241101-7
+Robot statistics: { rejected: 194, allowed: 13708 }
+
+rb9
+20241101-9
+Robot statistics: { rejected: 209, allowed: 12993 }
+
+rb8 failed for some reason
+
+rb10
+20241101-10
+Robot statistics: { rejected: 235, allowed: 13678 }
+

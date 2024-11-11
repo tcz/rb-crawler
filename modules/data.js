@@ -12,6 +12,7 @@ import PermuteNodesDataAugmenter from "./data_augmenters/PermuteNodesDataAugment
 import DeleteRandomCssRulesDataAugmenter from "./data_augmenters/DeleteRandomCssRulesDataAugmenter.js";
 import ChangeCssRulesDataAugmenter from "./data_augmenters/ChangeCssRulesDataAugmenter.js";
 import PermuteCssRulesDataAugmenter from "./data_augmenters/PermuteCssRulesDataAugmenter.js";
+import MarkupSizeReducerDataAugmenter from "./data_augmenters/MarkupSizeReducerDataAugmenter.js";
 
 const domToSvgPath = resolve(join(dirname(fileURLToPath(import.meta.url)), '../build/dom-to-svg.js'));
 const domToSvgJs = fs.readFileSync(domToSvgPath, 'utf8');
@@ -216,6 +217,15 @@ function selectRandomAugmenter() {
     return augmenters[augmenters.length - 1].augmenter;
 }
 
+async function reduceMarkup(browser, prefix, store, limit) {
+    const localPage = await openLocalPage(browser, prefix);
+
+    const reducer = new MarkupSizeReducerDataAugmenter(limit);
+    await reducer.augment(localPage);
+
+    await savePage(localPage, prefix, store);
+}
+
 async function augmentPage(browser, basePrefix, store) {
     let prefixes = [];
     // Only using a single augmenter per page, effectively doubling the data size.
@@ -246,5 +256,6 @@ export {
     savePageToCloud,
     saveDatasetToCloud,
     augmentPage,
-    getPageDataSize
+    getPageDataSize,
+    reduceMarkup
 };

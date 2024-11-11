@@ -1,7 +1,9 @@
 import { PuppeteerCrawler, Dataset, KeyValueStore, RequestQueue } from 'crawlee';
 import { startWebServer, stopWebServer } from './modules/server.js';
-import { augmentPage, savePageToCloud, saveDatasetToCloud, savePage,
-    saveScreen, saveSvg, screenshotSvg, getPageDataSize } from './modules/data.js';
+import {
+    augmentPage, savePageToCloud, saveDatasetToCloud, savePage,
+    saveScreen, saveSvg, screenshotSvg, getPageDataSize, reduceMarkup
+} from './modules/data.js';
 import {
     getPageSize, setupPageForCrawling, openLocalPage, loadLazyImages,
     purgeCache, isSiteRobotFriendly, doesHaveMediaQueries
@@ -39,6 +41,13 @@ runIntervalTo = parseInt(runIntervalTo, 10);
 
 console.log("Run name: " + runName);
 console.log("Run interval: [" + runIntervalFrom + ', ' + runIntervalTo + "[");
+
+let reduceMarkupSizeTo = process.env.REDUCE_MARKUP_SIZE_TO;
+if (undefined !== reduceMarkupSizeTo) {
+    reduceMarkupSizeTo = parseInt(reduceMarkupSizeTo, 10);
+}
+
+console.log("Reduce markup size to: " + reduceMarkupSizeTo ? reduceMarkupSizeTo : "N/A");
 
 let keepFiles = (parseInt(process.env.KEEP_FILES, 10) === 1);
 
@@ -115,6 +124,11 @@ const crawler = new PuppeteerCrawler({
         console.log('Saving page...');
 
         await savePage(page, basePrefix, KeyValueStore);
+
+        if (reduceMarkupSizeTo) {
+            await page.setViewport({ width: VIEWPORT_SIZES.MOBILE.width, height: VIEWPORT_SIZES.MOBILE.height });
+            await reduceMarkup(page.browser(), basePrefix, KeyValueStore, reduceMarkupSizeTo);
+        }
 
         let augmentedPagePrefixesWithNames = await augmentPage(page.browser(), basePrefix, KeyValueStore)
         var allPrefixes = [[basePrefix, undefined], ...augmentedPagePrefixesWithNames];

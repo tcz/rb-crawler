@@ -247,8 +247,8 @@ function loadLazyImages(page) {
 }
 
 async function isSiteRobotFriendly(url) {
-    const {protocol, hostname} = new URL(url);
-    const domain = protocol + '//' + hostname;
+    const { protocol, hostname, port } = new URL(url);
+    const domain = protocol + '//' + hostname + (port ? ':' + port : '');
 
     const robotsToTest = [
         'Googlebot',
