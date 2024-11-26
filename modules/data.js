@@ -13,6 +13,7 @@ import DeleteRandomCssRulesDataAugmenter from "./data_augmenters/DeleteRandomCss
 import ChangeCssRulesDataAugmenter from "./data_augmenters/ChangeCssRulesDataAugmenter.js";
 import PermuteCssRulesDataAugmenter from "./data_augmenters/PermuteCssRulesDataAugmenter.js";
 import MarkupSizeReducerDataAugmenter from "./data_augmenters/MarkupSizeReducerDataAugmenter.js";
+import PageChopper from "./data_augmenters/PageChopper.js";
 
 const domToSvgPath = resolve(join(dirname(fileURLToPath(import.meta.url)), '../build/dom-to-svg.js'));
 const domToSvgJs = fs.readFileSync(domToSvgPath, 'utf8');
@@ -248,6 +249,29 @@ async function augmentPage(browser, basePrefix, store) {
     return prefixes;
 }
 
+async function chopPage(browser, basePrefix, store, limit) {
+    let prefixes = [];
+    const chopper = new PageChopper(limit);
+    let ordinal = 0;
+
+    while(true) {
+        let newPrefix = basePrefix + '-chopped-' + ordinal;
+
+        const localPage = await openLocalPage(browser, basePrefix);
+
+        let success = await chopper.chop(localPage, ordinal);
+        if (!success) {
+            break;
+        }
+
+        await savePage(localPage, newPrefix, store);
+        prefixes.push([newPrefix, chopper.constructor.name]);
+
+        ordinal++;
+    }
+    return prefixes;
+}
+
 export {
     screenshotSvg,
     saveScreen,
@@ -257,5 +281,6 @@ export {
     saveDatasetToCloud,
     augmentPage,
     getPageDataSize,
-    reduceMarkup
+    reduceMarkup,
+    chopPage
 };

@@ -2,7 +2,8 @@ import { PuppeteerCrawler, Dataset, KeyValueStore, RequestQueue } from 'crawlee'
 import { startWebServer, stopWebServer } from './modules/server.js';
 import {
     augmentPage, savePageToCloud, saveDatasetToCloud, savePage,
-    saveScreen, saveSvg, screenshotSvg, getPageDataSize, reduceMarkup
+    saveScreen, saveSvg, screenshotSvg, getPageDataSize, reduceMarkup,
+    chopPage
 } from './modules/data.js';
 import {
     getPageSize, setupPageForCrawling, openLocalPage, loadLazyImages,
@@ -48,6 +49,17 @@ if (undefined !== reduceMarkupSizeTo) {
 }
 
 console.log("Reduce markup size to: " + (reduceMarkupSizeTo ? reduceMarkupSizeTo : "N/A"));
+
+let chopPageTo = process.env.CHOP_PAGE_TO;
+if (undefined !== chopPageTo) {
+    if (undefined !== reduceMarkupSizeTo) {
+        console.error('Cannot set both REDUCE_MARKUP_SIZE_TO and CHOP_PAGE_TO environment variables.');
+        process.exit(1);
+    }
+    chopPageTo = parseInt(chopPageTo, 10);
+}
+
+console.log("Chop page to to: " + (chopPageTo ? chopPageTo : "N/A"));
 
 let keepFiles = (parseInt(process.env.KEEP_FILES, 10) === 1);
 
@@ -130,10 +142,18 @@ const crawler = new PuppeteerCrawler({
             await reduceMarkup(page.browser(), basePrefix, KeyValueStore, reduceMarkupSizeTo);
         }
 
-        let augmentedPagePrefixesWithNames = await augmentPage(page.browser(), basePrefix, KeyValueStore)
-        var allPrefixes = [[basePrefix, undefined], ...augmentedPagePrefixesWithNames];
+        var allPrefixes;
+        if (chopPageTo) {
+            let choppedPagePrefixes = await chopPage(page.browser(), basePrefix, KeyValueStore, chopPageTo);
+            allPrefixes = choppedPagePrefixes;
+        } else {
+            let augmentedPagePrefixesWithNames = await augmentPage(page.browser(), basePrefix, KeyValueStore)
+            allPrefixes = [[basePrefix, undefined], ...augmentedPagePrefixesWithNames];
+        }
 
         for (let i = 0; i < allPrefixes.length; i++) {
+            console.log('Processing prefix ' + allPrefixes[i][0] + ', ' + (i+1) + '/' + allPrefixes.length);
+
             let [prefix, augmenterName] = allPrefixes[i];
             let isAugmented = !!augmenterName;
 
@@ -209,7 +229,7 @@ const crawler = new PuppeteerCrawler({
     },
 
     maxRequestsPerCrawl: 100000,
-    requestHandlerTimeoutSecs: 300,
+    requestHandlerTimeoutSecs: chopPageTo ? 3600 : 300,
     maxRequestRetries: 2,
 
     minConcurrency: 5,
