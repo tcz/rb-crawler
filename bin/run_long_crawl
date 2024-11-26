@@ -2,4 +2,4 @@
 # rm -rf storage/key_value_stores/default/
 # rm -rf storage/request_queues/default/
 
-time while true; do AWS_PROFILE=personal CRAWLEE_PURGE_ON_START=0 CRAWLEE_MEMORY_MBYTES=30000 RUN_NAME=20241016-1 RUN_INTERVAL_FROM=0 RUN_INTERVAL_TO=1 node index.js 2>&1 | tee -a log.txt; sleep 10; done
+time while true; do AWS_PROFILE=personal CRAWLEE_PURGE_ON_START=0 CRAWLEE_MEMORY_MBYTES=30000 RUN_NAME=markup-trim-test RUN_INTERVAL_FROM=0 RUN_INTERVAL_TO=100 REDUCE_MARKUP_SIZE_TO=8000 node index.js 2>&1 | tee -a log.txt; sleep 10; done

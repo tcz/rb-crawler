@@ -47,7 +47,7 @@ if (undefined !== reduceMarkupSizeTo) {
     reduceMarkupSizeTo = parseInt(reduceMarkupSizeTo, 10);
 }
 
-console.log("Reduce markup size to: " + reduceMarkupSizeTo ? reduceMarkupSizeTo : "N/A");
+console.log("Reduce markup size to: " + (reduceMarkupSizeTo ? reduceMarkupSizeTo : "N/A"));
 
 let keepFiles = (parseInt(process.env.KEEP_FILES, 10) === 1);
 

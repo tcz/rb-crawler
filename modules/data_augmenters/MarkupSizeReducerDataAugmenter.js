@@ -4,11 +4,6 @@ class MarkupSizeReducerDataAugmenter {
     }
 
     async augment(page) {
-        // IDEA: Just delete the bottom elements. Maybe can be recurseively fractioned if the last element to delete is too big.
-
-        console.log('Reducing markup size...');
-        console.log(await this.getMarkupSize(page));
-
         if (await this.getMarkupSize(page) > this.markupSizeLimit) {
             await page.evaluate(() => {
                 let toRemove = [];
@@ -87,7 +82,6 @@ class MarkupSizeReducerDataAugmenter {
             await page.evaluate((charsNeededToRemove) => {
                 let toRemove = [];
                 function removeElementsFromBottom(node, charsLeftToRemove) {
-                    console.log('Chars left to remove: ' + charsLeftToRemove);
 
                     if (node.nodeType === Node.TEXT_NODE) {
                         return 0;
@@ -121,8 +115,6 @@ class MarkupSizeReducerDataAugmenter {
                 }
             }, charsNeededToRemove);
         }
-
-        console.log(await this.getMarkupSize(page));
     }
 
     async getMarkupSize(page) {

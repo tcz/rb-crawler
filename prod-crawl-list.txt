@@ -113,3 +113,82 @@ rb10
 20241101-10
 Robot statistics: { rejected: 235, allowed: 13678 }
 
+-- WITH MARKUP SIZE REDUCING:
+
+rb1
+20241111-1
+Robot statistics: { rejected: 440, allowed: 27180 }
+
+rb3
+20241111-3
+Robot statistics: { rejected: 400, allowed: 26997 }
+
+rb4
+20241111-4
+Robot statistics: { rejected: 468, allowed: 27112 }
+
+rb5
+20241111-5
+Robot statistics: { rejected: 310, allowed: 20678 }
+
+rb6
+20241111-6
+Robot statistics: { rejected: 415, allowed: 27255 }
+
+rb7
+20241111-7
+Robot statistics: { rejected: 167, allowed: 11423 }
+
+rb8
+20241111-8
+Robot statistics: { rejected: 241, allowed: 16141 }
+
+rb9
+20241111-9
+Robot statistics: { rejected: 465, allowed: 27224 }
+
+rb10
+20241111-10
+Robot statistics: { rejected: 453, allowed: 26319 }
+
+---
+
+rb1
+20241116-1
+Robot statistics: { rejected: 463, allowed: 27171 }
+
+rb2
+20241116-2
+Robot statistics: { rejected: 150, allowed: 10581 }
+
+rb3
+20241116-3
+Robot statistics: { rejected: 3, allowed: 379 }
+
+rb4
+20241116-4
+Robot statistics: { rejected: 274, allowed: 17326 }
+
+rb5
+20241116-5
+Robot statistics: { rejected: 438, allowed: 27140 }
+
+rb6
+20241116-6
+Robot statistics: { rejected: 358, allowed: 21968 }
+
+rb7
+20241116-7
+Robot statistics: { rejected: 300, allowed: 17461 }
+
+rb8
+20241116-8
+Robot statistics: { rejected: 341, allowed: 22617 }
+
+rb9
+20241116-9
+Robot statistics: { rejected: 425, allowed: 27110 }
+
+rb10
+20241116-10
+Robot statistics: { rejected: 466, allowed: 27129 }

@@ -16,7 +16,7 @@ class ChangeCssRulesDataAugmenter {
                     case "rgba":
                         return `rgba(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.random().toFixed(1)})`;
                     case "named":
-                        const colors = ["black", "white", "red", "green", "blue", "yellow"];
+                        const colors = ["black", "white", "red", "green", "blue", "yellow", "rebeccapurple"];
                         return colors[Math.floor(Math.random() * colors.length)];
                 }
             }
