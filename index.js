@@ -256,30 +256,14 @@ const crawler = new PuppeteerCrawler({
 
 await startWebServer();
 
-// Generate a list of URLs like this: https://en.wikipedia.org/wiki/Main_Page?test=1 where the number increases from 1
-// to 1000.
-// const urls = Array.from({ length: 1000 }, (_, i) => `https://en.wikipedia.org/wiki/Main_Page?test=${i + 1}`);
-
 // Read urls.txt and put all the URLs per line in an array. Filter out empty lines.
 import fs from 'fs';
 
-let urls = fs.readFileSync('/Users/tcz/Dropbox/Reverse Browser/Models/playground/synthetic-data/size-color-text1/urls.txt', 'utf-8').split('\n').filter(Boolean);
-// let urls = fs.readFileSync('urls-new.txt', 'utf-8').split('\n').filter(Boolean);
+let urls = fs.readFileSync('urls.txt', 'utf-8').split('\n').filter(Boolean);
 urls = urls.slice(runIntervalFrom, runIntervalTo);
 
 // Add first URL to the queue and start the crawl.
-//await crawler.run(['https://en.wikipedia.org/wiki/Main_Page']);
-await crawler.run([
-    'http://0.0.0.0:9888/color-page-responsive.html',
-    // 'https://9c6cf561abd7.ngrok.app/test1.html',
-    // 'https://9c6cf561abd7.ngrok.app/test2.html',
-    // 'https://9c6cf561abd7.ngrok.app/test3.html',
-    // 'https://9c6cf561abd7.ngrok.app/test4.html',
-]);
-// await crawler.run(['https://www.nytimes.com/']);
-// await crawler.run(['https://4464fdf963b7.ngrok.app/test5.html']);
-// await crawler.run(['https://www.empireonline.com/movies/features/star-wars-behind-scenes/']);
-/// await crawler.run(urls);
+await crawler.run(urls);
 
 await saveDataset();
 
