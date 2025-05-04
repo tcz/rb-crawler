@@ -139,7 +139,8 @@ const crawler = new PuppeteerCrawler({
 
         if (reduceMarkupSizeTo) {
             await page.setViewport({ width: VIEWPORT_SIZES.MOBILE.width, height: VIEWPORT_SIZES.MOBILE.height });
-            await reduceMarkup(page.browser(), basePrefix, KeyValueStore, reduceMarkupSizeTo);
+            await reduceMarkup(page.browser(), basePrefix, KeyValueStore, reduceMarkupSizeTo,
+                { width: VIEWPORT_SIZES.MOBILE.width, height: VIEWPORT_SIZES.MOBILE.height });
         }
 
         var allPrefixes;

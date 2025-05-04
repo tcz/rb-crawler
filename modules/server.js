@@ -4,6 +4,7 @@ import {fileURLToPath} from "url";
 import fs from 'fs';
 
 let server;
+let port = 3000;
 
 async function startWebServer() {
     const app = express();
@@ -39,10 +40,8 @@ async function startWebServer() {
         res.send(html);
     });
 
-    const PORT = 3000;
-
-    server = app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT} with root ${root}.`);
+    server = app.listen(port, () => {
+        console.log(`Server is running on port ${port} with root ${root}.`);
     });
 }
 
@@ -55,4 +54,8 @@ async function stopWebServer() {
     }
 }
 
-export { startWebServer, stopWebServer };
+function getWebServerPort() {
+    return port;
+}
+
+export { startWebServer, stopWebServer, getWebServerPort };

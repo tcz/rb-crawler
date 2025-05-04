@@ -4,6 +4,7 @@ import {fileURLToPath} from "url";
 import {shortId} from './utils.js';
 import robotsParser from "robots-txt-parser";
 import mime from 'mime-types';
+import {getWebServerPort} from "./server.js";
 
 const root = resolve(join(dirname(fileURLToPath(import.meta.url)), '../storage/key_value_stores/default'));
 
@@ -25,7 +26,7 @@ async function setupPageForCrawling(page) {
         const url = response.url();
         const parsedUrl = new URL(url);
 
-        if (parsedUrl.hostname === "localhost") {
+        if (parsedUrl.hostname === "localhost" && parseInt(parsedUrl.port, 10) === parseInt(getWebServerPort(), 10)) {
             return;
         }
 

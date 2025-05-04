@@ -218,8 +218,8 @@ function selectRandomAugmenter() {
     return augmenters[augmenters.length - 1].augmenter;
 }
 
-async function reduceMarkup(browser, prefix, store, limit) {
-    const localPage = await openLocalPage(browser, prefix);
+async function reduceMarkup(browser, prefix, store, limit, viewportSize) {
+    const localPage = await openLocalPage(browser, prefix, viewportSize);
 
     const reducer = new MarkupSizeReducerDataAugmenter(limit);
     await reducer.augment(localPage);
